@@ -6,6 +6,7 @@
     <title>THCS Nguyễn Trãi - Eco Vision AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    
     <style>
         :root { --primary-green: #2e7d32; --light-green: #e8f5e9; --accent-green: #4caf50; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #f0f4f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -13,94 +14,144 @@
         .screen { display: none; height: 100%; width: 100%; flex-direction: column; padding: 20px; box-sizing: border-box; text-align: center; }
         .screen.active { display: flex; }
 
-        /* Màn hình 1: Trang chủ */
+        /* Màn hình 1 */
         #home-screen { background: linear-gradient(180deg, #ffffff 0%, #e8f5e9 100%); }
-        .logo-school { width: 60px; margin-top: 20px; }
-        .hero-img { width: 80%; margin: 30px auto; }
-        .btn-main { background: var(--accent-green); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .logo-school { width: 80px; margin: 20px auto; display: block; }
+        .hero-img { width: 80%; margin: 20px auto; border-radius: 20px; }
+        .btn-main { background: var(--accent-green); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-main:active { transform: scale(0.95); }
 
         /* Màn hình 2: Quét */
-        #webcam-container { width: 100%; border-radius: 20px; border: 4px dashed var(--accent-green); margin-top: 50px; overflow: hidden; background: #000; height: 300px; }
-        .scan-line { width: 100%; height: 2px; background: red; position: absolute; top: 30%; left: 0; animation: moveLine 2s infinite linear; }
-        @keyframes moveLine { 0% { top: 20%; } 100% { top: 60%; } }
+        #webcam-container { width: 100%; border-radius: 20px; border: 4px dashed var(--accent-green); margin-top: 30px; overflow: hidden; background: #000; height: 300px; position: relative; }
+        canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+        .scan-line { width: 100%; height: 2px; background: red; position: absolute; top: 20%; left: 0; animation: moveLine 2s infinite linear; z-index: 10; }
+        @keyframes moveLine { 0% { top: 20%; } 100% { top: 80%; } }
 
         /* Màn hình 3: Kết quả */
-        .result-card { background: white; border-radius: 20px; padding: 20px; margin-top: 30px; border: 2px solid var(--light-green); text-align: left; }
-        .carbon-tag { background: #ff5252; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; }
-        .eco-tip { background: #fffde7; border-left: 5px solid #fbc02d; padding: 10px; margin-top: 15px; font-size: 14px; }
+        .result-card { background: white; border-radius: 20px; padding: 20px; margin-top: 20px; border: 2px solid var(--light-green); text-align: left; }
+        .carbon-tag { display: inline-block; padding: 5px 15px; border-radius: 10px; font-weight: bold; color: white; margin-top: 10px; }
+        .eco-tip { background: #fffde7; border-left: 5px solid #fbc02d; padding: 15px; margin-top: 20px; font-size: 14px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
 <div class="phone-frame">
     <div id="home-screen" class="screen active">
-        <img src="https://via.placeholder.com/60?text=Logo" class="logo-school" alt="THCS Nguyễn Trãi">
-        <h2 style="color: var(--primary-green);">ECO-VISION</h2>
-        <p>"Quét để hiểu - Sống xanh hơn!"</p>
-        <img src="https://via.placeholder.com/200x200?text=Earth+AI" class="hero-img">
-        <button class="btn-main" onclick="showScreen('scan-screen'); initAI();">📷 BẮT ĐẦU QUÉT</button>
+        <img src="https://via.placeholder.com/80?text=Logo" class="logo-school" alt="Logo">
+        <h2 style="color: var(--primary-green); margin-bottom: 5px;">ECO-VISION</h2>
+        <p style="margin-top: 0;">Trường THCS Nguyễn Trãi</p>
+        <img src="https://via.placeholder.com/200x200?text=AI+Earth" class="hero-img">
+        <p style="font-style: italic;">"Quét sản phẩm - Bảo vệ Trái Đất"</p>
+        <button class="btn-main" onclick="startApp()">📷 BẮT ĐẦU QUÉT</button>
     </div>
 
     <div id="scan-screen" class="screen">
-        <h3>MÀN HÌNH QUÉT</h3>
-        <div style="position: relative;">
-            <div id="webcam-container"></div>
+        <h3>ĐANG PHÂN TÍCH...</h3>
+        <div id="webcam-container">
             <div class="scan-line"></div>
         </div>
-        <p>Đưa sản phẩm vào khung hình</p>
-        <button onclick="showScreen('home-screen')" style="margin-top:auto; padding:10px; border:none; background:none; color:gray;">← Quay lại</button>
+        <p style="color: #666; margin-top: 20px;">Đưa sản phẩm vào chính giữa khung hình</p>
+        <button onclick="stopApp()" style="margin-top:auto; padding:10px; border:none; background:none; color:gray; cursor:pointer;">← Quay lại</button>
     </div>
 
     <div id="result-screen" class="screen">
         <h3 style="color: #1976d2;">KẾT QUẢ PHÂN TÍCH</h3>
         <div class="result-card">
-            <h2 id="res-name">Tên sản phẩm</h2>
-            <p>Carbon: <span id="res-carbon" class="carbon-tag">CAO</span></p>
+            <h2 id="res-name" style="margin: 0; color: var(--primary-green);">Tên sản phẩm</h2>
+            <div id="res-carbon" class="carbon-tag">MỨC CARBON</div>
             <div class="eco-tip">
-                <b>Eco-tip:</b> <span id="res-tip">Đang phân tích...</span>
+                <b>Lời khuyên sống xanh:</b><br>
+                <span id="res-tip">Đang lấy dữ liệu...</span>
             </div>
         </div>
-        <button class="btn-main" style="margin-top: 30px;" onclick="showScreen('scan-screen')">🔄 QUÉT LẠI</button>
+        <button class="btn-main" style="margin-top: 30px;" onclick="showScreen('scan-screen'); isScanning = true;">🔄 QUÉT SẢN PHẨM KHÁC</button>
     </div>
 </div>
 
 <script>
-    // 1. Thay link của nhóm vào đây
+    // 1. Cấu hình Model từ Teachable Machine
     const MODEL_URL = "https://teachablemachine.withgoogle.com/models/qePPB6ZMw/";
     let model, webcam, maxPredictions, isScanning = false;
-    let ecoData = [
-        {"className": "chai_nhua", "ten": "Chai nhựa", "carbon": "CAO", "tip": "Hãy thay bằng bình inox để giảm rác thải!"},
-        {"className": "binh_inox", "ten": "Bình Inox", "carbon": "THẤP", "tip": "Tuyệt vời! Hãy tiếp tục phát huy lối sống xanh."}
+
+    // 2. Dữ liệu xanh (Dựa trên file data.json của bạn)
+    const ecoData = [
+        {"className": "Hop_xop", "ten": "Hộp xốp", "carbon": "CAO", "tip": "Sản phẩm này cực kỳ khó phân hủy. Bạn hãy thay bằng hộp bã mía hoặc hộp bã mía nhé!"},
+        {"className": "Binh_Inox_giu_nhiet", "ten": "Bình Inox giữ nhiệt", "carbon": "THẤP", "tip": "Tuyệt vời! Việc sử dụng bình cá nhân giúp giảm hàng ngàn chai nhựa mỗi năm."},
+        {"className": "Hop_sua_chua", "ten": "Hộp sữa chua (nhựa)", "carbon": "TRUNG BÌNH", "tip": "Sau khi dùng xong, hãy rửa sạch và bỏ vào thùng rác tái chế đúng quy định."}
     ];
 
+    // Chuyển đổi giữa các màn hình
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        isScanning = (id === 'scan-screen');
     }
 
-    async function initAI() {
-        async function initAI() {
-        if (model) return;
-        try {
-            // Thêm dòng thông báo để kiểm tra
-            console.log("Đang tải mô hình...");
-            model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
-            maxPredictions = model.getTotalClasses();
-            
-            // Thiết lập Webcam
-            const flip = true; 
-            webcam = new tmImage.Webcam(300, 300, flip); 
-            await webcam.setup(); 
-            await webcam.play();
-            
-            // Xóa nội dung cũ trong container trước khi thêm canvas mới
-            const container = document.getElementById("webcam-container");
-            container.innerHTML = ""; 
-            container.appendChild(webcam.canvas);
-            
-            window.requestAnimationFrame(loop);
-        } catch (e) {
-            alert("Lỗi camera hoặc link model: " + e);
+    // Khởi động toàn bộ ứng dụng
+    async function startApp() {
+        showScreen('scan-screen');
+        if (!model) {
+            try {
+                model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+                maxPredictions = model.getTotalClasses();
+                
+                webcam = new tmImage.Webcam(300, 300, true); 
+                await webcam.setup(); 
+                await webcam.play();
+                
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                window.requestAnimationFrame(loop);
+            } catch (e) {
+                alert("Lỗi: Không thể truy cập Camera. Hãy kiểm tra cài đặt ổ khóa và cho phép Camera nhé!");
+                showScreen('home-screen');
+                return;
+            }
+        }
+        isScanning = true;
+    }
+
+    // Dừng tạm thời
+    function stopApp() {
+        isScanning = false;
+        showScreen('home-screen');
+    }
+
+    async function loop() {
+        if (isScanning) {
+            webcam.update();
+            await predict();
+        }
+        window.requestAnimationFrame(loop);
+    }
+
+    // Nhận diện và hiển thị
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            // Nếu máy tin tưởng trên 90%
+            if (prediction[i].probability > 0.90 && isScanning) {
+                const found = ecoData.find(item => item.className === prediction[i].className);
+                if (found) {
+                    showResult(found);
+                    isScanning = false; 
+                }
+            }
         }
     }
+
+    function showResult(item) {
+        document.getElementById("res-name").innerText = item.ten;
+        document.getElementById("res-tip").innerText = item.tip;
+        
+        const carbonTag = document.getElementById("res-carbon");
+        carbonTag.innerText = "CARBON: " + item.carbon;
+        
+        // Đổi màu tag theo mức độ
+        if (item.carbon === "CAO") carbonTag.style.backgroundColor = "#ff5252";
+        else if (item.carbon === "THẤP") carbonTag.style.backgroundColor = "#4caf50";
+        else carbonTag.style.backgroundColor = "#ffb300";
+
+        showScreen('result-screen');
+    }
+</script>
+</body>
+</html>
