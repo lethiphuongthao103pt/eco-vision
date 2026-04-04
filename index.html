@@ -529,6 +529,8 @@
     // KIỂM TRA HTTPS ngay khi tải trang
     // ==========================================
     window.addEventListener('load', () => {
+        // Tự động tải mô hình AI ngay khi mở trang
+        loadModel(); 
         if (location.protocol === 'file:') {
             // Hiển thị cảnh báo ở trang chủ
             const warn = document.createElement('div');
