@@ -3,377 +3,760 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giao diện Web Tương Tác Eco-Vision</title>
+    <title>Eco-Vision - THCS Nguyễn Trãi</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+    
     <style>
-        /* === CSS CHUNG === */
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        :root {
+            --green-dark: #1b5e20; --green-mid: #2e7d32; --green-light: #4caf50;
+            --bg-home: linear-gradient(180deg, #ffffff 0%, #dcedc8 100%);
+            --bg-scan: linear-gradient(180deg, #e8f5e9 0%, #a5d6a7 100%);
+            --btn-grad: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
+        }
+
+        * { box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif;
-            background-color: #e0f2f1; /* Nền xanh mint mờ */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+            margin: 0; font-family: 'Nunito', sans-serif;
+            background: radial-gradient(ellipse at center, #c8e6c9 0%, #81c784 100%);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
         }
 
-        /* === KHUNG ĐIỆN THOẠI === */
-        .phone-frame {
-            position: relative;
-            width: 374px; /* Giữ tỷ lệ, đo từ ảnh 748x1080 */
-            height: 540px; 
-            background-color: white; /* Nền trắng mờ làm lớp nền, giúpcontain không bị khoảng trống */
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border-radius: 40px; /* Bo góc giả lập điện thoại */
-            overflow: hidden; /* Giấu nội dung overlay khi chưa mở */
+        .phone {
+            width: 375px; height: 750px; border-radius: 45px; border: 10px solid #222;
+            position: relative; overflow: hidden;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), inset 0 0 0 2px #555; background: white;
         }
 
-        /* === HÌNH NỀN GIAO DIỆN (ĐÃ CHỈNH SỬA LỖI TRÀN) === */
-        .interface-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* !!! SỬ DỤNG HÌNH ẢNH MỚI (image_7.png) !!! */
-            background-image: url('interface.png'); 
-            /* SỬA LỖI TRÀN: Đảm bảo hình ảnh gốc được hiển thị 100% và nằm gọn bên trong khung */
-            background-size: contain; 
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 1; /* Nằm dưới các nút hotspot */
+        .phone::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 28px; background: #222; border-radius: 0 0 18px 18px; z-index: 999;
         }
 
-        /* === NÚT HOTSPOT ẨN === */
-        .action-btn {
-            position: absolute;
-            background: transparent; /* Nút ẩn */
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            z-index: 10; /* Đặt trên background */
+        .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; }
+        .screen.active { display: flex; }
+
+        /* --- TRANG CHỦ --- */
+        #home-screen { background: var(--bg-home); padding-top: 50px; }
+        .leaf { position: absolute; background-size: contain; background-repeat: no-repeat; z-index: 1; opacity: 0.5; animation: sway 4s ease-in-out infinite alternate; background-image: url('https://cdn-icons-png.flaticon.com/512/892/892926.png'); }
+        @keyframes sway { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(10deg) translateY(10px); } }
+        .leaf-tl { width: 110px; height: 110px; top: -15px; left: -25px; transform: rotate(110deg); }
+        .leaf-tr { width: 65px; height: 65px; top: 55px; right: -15px; transform: rotate(-20deg); animation-delay: 1s; }
+        .leaf-ml { width: 150px; height: 150px; top: 340px; left: -55px; opacity: .3; transform: rotate(45deg); animation-delay: 2s; }
+        .leaf-br { width: 135px; height: 135px; bottom: -30px; right: -40px; transform: rotate(-40deg); animation-delay: 1.5s; }
+
+        .school-name { font-size: 13px; font-weight: 900; color: var(--green-dark); text-transform: uppercase; letter-spacing: 2px; z-index: 5; }
+        .app-title { font-size: 46px; font-weight: 900; color: var(--green-mid); margin: 4px 0; z-index: 5; text-shadow: 2px 4px 10px rgba(46, 125, 50, 0.2); }
+        .slogan { font-style: italic; font-size: 13px; color: #555; margin-bottom: 10px; z-index: 5; }
+        .earth-img { width: 175px; z-index: 5; filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.15)); animation: float 3s ease-in-out infinite alternate; }
+        @keyframes float { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+
+        .btn-scan-main { background: var(--btn-grad); color: white; border: none; padding: 14px 38px; border-radius: 50px; font-size: 19px; font-weight: 900; display: flex; align-items: center; gap: 10px; cursor: pointer; z-index: 5; margin-top: 15px; box-shadow: 0 8px 20px rgba(46, 125, 50, 0.35); font-family: 'Nunito', sans-serif; transition: 0.2s;}
+        .btn-scan-main:active { transform: scale(0.96); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+        
+        .info-card { background: rgba(255, 255, 255, 0.85); border: 2px dashed #4caf50; border-radius: 22px; padding: 13px 22px; width: 78%; text-align: center; margin-top: 18px; color: #333; font-size: 14px; z-index: 5; }
+        .categories { display: flex; gap: 12px; margin: 16px 0; z-index: 5; }
+        .cat-item { background: white; padding: 10px; border-radius: 18px; width: 82px; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        .cat-item img { width: 44px; height: 44px; object-fit: contain; margin: 0 auto 5px; display: block; }
+        .badge { font-size: 11px; font-weight: 800; padding: 3px 0; border-radius: 8px; display: block; }
+        .badge-nhua { background: #ffebee; color: #c62828; }
+        .badge-lon { background: #fff8e1; color: #f57f17; }
+        .badge-giay { background: #e8f5e9; color: #2e7d32; }
+
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0 22px; border-top: 1px solid #eee; z-index: 5; }
+        .nav-link { color: #9e9e9e; text-align: center; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .nav-icon { font-size: 22px; display: block; margin-bottom: 3px; }
+
+        /* --- TRANG QUÉT --- */
+        #scan-screen { background: var(--bg-scan); }
+        .header-scan { width: 90%; padding: 45px 0 12px; display: flex; justify-content: space-between; align-items: center; color: var(--green-dark); z-index: 10; font-weight: 900;}
+        .back-btn { font-size: 15px; cursor: pointer; }
+        .camera-wrapper { width: 320px; height: 370px; background: #111; border-radius: 28px; overflow: hidden; border: 3px solid rgba(255, 255, 255, 0.5); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25); position: relative; z-index: 2; }
+        #video-live { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #capture-canvas { display: none; }
+        
+        .laser { position: absolute; width: 90%; height: 3px; background: #ff1744; left: 5%; box-shadow: 0 0 12px #ff1744; animation: scanAnim 2.5s infinite ease-in-out; z-index: 5; }
+        @keyframes scanAnim { 0% { top: 8%; } 100% { top: 88%; } }
+
+        .scan-hint { font-weight: 700; color: var(--green-dark); margin: 14px 0 4px; font-size: 14px; z-index: 5;}
+        
+        #result-text { font-weight: 800; font-size: 14px; color: var(--green-dark); margin: 6px 20px; text-align: center; background: rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px; width: 85%; display: none; z-index: 5;}
+        
+        .btn-capture { margin-top: 15px; padding: 14px 55px; border: none; border-radius: 50px; background: var(--btn-grad); color: white; font-size: 22px; font-weight: 900; letter-spacing: 3px; cursor: pointer; box-shadow: 0 10px 25px rgba(46, 125, 50, 0.4); z-index: 10; font-family: 'Nunito', sans-serif; transition: 0.2s;}
+        .btn-capture:active { transform: translateY(2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); }
+
+        #toast { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; z-index: 999; display: none; white-space: nowrap; }
+
+        /* --- HIỆU ỨNG LOADING (ĐANG QUÉT) --- */
+        #loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85); z-index: 50;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
         }
-
-        /* Hiệu ứng mờ mờ khi di chuột */
-        .action-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
+        .spinner {
+            width: 50px; height: 50px; border: 6px solid #e2e8f0;
+            border-top: 6px solid var(--green-mid); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-weight: 900; color: var(--green-mid); font-size: 16px; letter-spacing: 1px; }
 
-        /* === VỊ TRÍ NÚT CHO NỀN MỚI (Vị trí % không đổi) === */
-        /* 1. Nút Đăng nhập chính (Thay thế quét) */
-        #btn-login-main {
-            top: 41.5%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 48%;
-            height: 10%;
-            border-radius: 20px;
-        }
-
-        /* 2. Thanh menu dưới */
-        #btn-guide { top: 88.8%; left: 24.5%; transform: translateX(-50%); width: 22%; height: 4.5%; }
-        #btn-history { top: 88.8%; left: 50%; transform: translateX(-50%); width: 22%; height: 4.5%; }
-        #btn-settings { top: 88.8%; left: 75.5%; transform: translateX(-50%); width: 22%; height: 4.5%; }
-
-        /* Nút thể loại (tùy chọn) */
-        .btn-category { top: 73.5%; transform: translateX(-50%); width: 12%; height: 3%; border-radius: 50%; }
-        #btn-nhua { left: 32.5%; }
-        #btn-lon { left: 50%; }
-        #btn-giay { left: 67.5%; }
-
-
-        /* === OVERLAY VÀ NỘI DUNG === */
-        .screen-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5); /* Nền đen mờ */
-            z-index: 20; /* Đặt trên tất cả */
-            display: none; /* Ẩn mặc định */
-            justify-content: center;
-            align-items: center;
-        }
-
-        .screen-overlay.open { display: flex; animation: fadeIn 0.3s ease forwards; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .overlay-content {
-            background-color: white;
-            width: 80%;
-            max-height: 80%;
-            border-radius: 20px;
-            padding: 30px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .overlay-content h2 { color: #2e7d32; text-align: center; margin-top: 0; }
-        .overlay-content ol, .overlay-content ul { color: #555; }
-        .overlay-content ul { list-style: none; padding: 0; }
-        .overlay-content li { background: rgba(46, 125, 50, 0.05); margin-bottom: 10px; padding: 10px; border-radius: 5px; }
-
-        .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; border: none; font-size: 1.5rem; font-weight: bold; color: #888; cursor: pointer; transition: color 0.2s ease; z-index: 10; }
-        .close-btn:hover { color: #2e7d32; }
-
-        /* Kiểu cài đặt toggle switch */
-        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 3px; background-color: white; -webkit-transition: .4s; transition: .4s; }
-        input:checked + .slider { background-color: #2e7d32; }
-        input:focus + .slider { box-shadow: 0 0 1px #2e7d32; }
-        input:checked + .slider:before { -webkit-transform: translateX(24px); -ms-transform: translateX(24px); transform: translateX(24px); }
-        .slider.round { border-radius: 34px; }
-        .slider.round:before { border-radius: 50%; }
-
-        /* === ĐỊNH KIỂU FORM ĐĂNG NHẬP MỚI === */
-        .login-content h2 {
-            color: #2e7d32; /* Xanh lá cây */
-            text-align: center;
-            margin-top: 0;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .form-label {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .form-input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            color: #555;
-        }
-
-        .submit-btn {
-            background-color: #2e7d32; /* Xanh lá cây */
-            color: white;
-            padding: 15px;
-            border: none;
-            border-radius: 25px; /* Bo góc tròn */
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background-color 0.2s ease;
-        }
-
-        .submit-btn:hover {
-            background-color: #034833; /* Xanh lá cây đậm hơn */
-        }
-
-        .login-links {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #777;
-            margin-top: 10px;
-        }
-
-        .login-links a {
-            color: #2e7d32;
-            text-decoration: none;
-        }
-
-        .login-links a:hover {
-            text-decoration: underline;
-        }
+        /* --- TRANG KẾT QUẢ --- */
+        #result-screen { background: #f4fdf8; padding-top: 40px; }
+        .res-header { width: 90%; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--green-dark); margin-bottom: 20px; font-size: 18px; z-index: 5;}
+        .res-back { cursor: pointer; color: var(--green-dark); font-size: 16px; }
+        
+        .res-card { background: white; width: 85%; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-bottom: 15px; position: relative; z-index: 5; border: 1px solid #e0f2f1;}
+        .res-title { font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; }
+        
+        .res-badge { display: inline-block; padding: 6px 18px; border-radius: 20px; font-weight: 900; color: white; margin-bottom: 25px; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
+        .badge-cao { background: #ef4444; } /* Đỏ */
+        .badge-tb { background: #f59e0b; }  /* Vàng */
+        .badge-thap { background: #10b981; } /* Xanh */
+        
+        /* Thanh đo Carbon */
+        .res-scale-container { position: relative; margin-top: 15px; }
+        .scale-bar { width: 100%; height: 14px; border-radius: 10px; background: linear-gradient(to right, #10b981, #f59e0b, #ef4444); position: relative; }
+        .scale-indicator { position: absolute; top: -6px; width: 4px; height: 26px; background: #1f2937; border-radius: 2px; transition: left 0.5s ease; }
+        .scale-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-top: 8px; color: #4b5563; }
+        .scale-labels span:nth-child(1) { color: #10b981; }
+        .scale-labels span:nth-child(2) { color: #f59e0b; }
+        .scale-labels span:nth-child(3) { color: #ef4444; }
+        
+        .res-tip-title { font-size: 17px; font-weight: 900; color: var(--green-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        .res-tip-text { font-size: 15px; color: #374151; line-height: 1.5; font-weight: 700;}
+        
+        /* Nút hành động */
+        .res-actions { display: flex; gap: 12px; width: 85%; margin-top: 10px; z-index: 5;}
+        .btn-res { flex: 1; padding: 14px 0; border: none; border-radius: 25px; font-weight: 900; font-size: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Nunito', sans-serif;}
+        .btn-res-scan { background: #0f766e; color: white; box-shadow: 0 6px 15px rgba(15, 118, 110, 0.3); }
+        .btn-res-detail { background: #fef08a; color: #854d0e; box-shadow: 0 6px 15px rgba(254, 240, 138, 0.5); }
 
     </style>
+
 </head>
 <body>
 
-    <div class="phone-frame">
-        <div class="interface-background"></div>
+    <div class="phone">
+        
+        <div id="home-screen" class="screen active">
+            <div class="leaf leaf-tl"></div> <div class="leaf leaf-tr"></div>
+            <div class="leaf leaf-ml"></div> <div class="leaf leaf-br"></div>
 
-        <button class="action-btn" id="btn-login-main" title="Đăng nhập"></button>
-        
-        <button class="action-btn" id="btn-guide" title="Hướng dẫn"></button>
-        <button class="action-btn" id="btn-history" title="Lịch sử"></button>
-        <button class="action-btn" id="btn-settings" title="Cài đặt"></button>
-        
-        <button class="action-btn btn-category" id="btn-nhua" title="Nhựa"></button>
-        <button class="action-btn btn-category" id="btn-lon" title="Lon"></button>
-        <button class="action-btn btn-category" id="btn-giay" title="Giấy"></button>
+            <div class="school-name">THCS Nguyễn Trãi</div>
+            <h1 class="app-title">ECO-VISION</h1>
+            <div class="slogan">"Quét để hiểu – Sống xanh hơn"</div>
 
-        
-        <div class="screen-overlay" id="overlay-login">
-            <div class="overlay-content login-content">
-                <button class="close-btn" onclick="closeScreen('overlay-login')">X</button>
-                <h2>ĐĂNG NHẬP</h2>
-                <form id="login-form" class="login-form">
-                    <div class="form-group">
-                        <label class="form-label" for="full-name">Họ tên</label>
-                        <input type="text" id="full-name" class="form-input" placeholder="Họ và tên của bạn" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="unit">Đơn vị</label>
-                        <input type="text" id="unit" class="form-input" placeholder="Lớp / Phòng ban" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="phone-number">SĐT</label>
-                        <input type="tel" id="phone-number" class="form-input" placeholder="Số điện thoại" required pattern="[0-9]{10}">
-                    </div>
-                    <button type="submit" class="submit-btn">ĐĂNG NHẬP</button>
-                </form>
-                <div class="login-links">
-                    <a href="#">Quên mật khẩu?</a> | <a href="#">Đăng ký tài khoản mới</a>
+            <img src="https://cdn-icons-png.flaticon.com/512/826/826070.png" class="earth-img" alt="Earth">
+
+            <button class="btn-scan-main" onclick="goToScan()">
+                <span>📷</span> BẮT ĐẦU QUÉT
+            </button>
+
+            <div class="info-card">
+                Ứng dụng giúp bạn nhận biết<br>
+                <strong>lượng CO₂</strong> của sản phẩm 🌿
+            </div>
+
+            <div class="categories">
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1047/1047503.png" alt="Cao">
+                    <span class="badge badge-nhua">Cao</span>
+                </div>
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2722/2722512.png" alt="Trung Bình">
+                    <span class="badge badge-lon">Trung bình</span>
+                </div>
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/679/679821.png" alt="Thấp">
+                    <span class="badge badge-giay">Thấp</span>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+               <div class="nav-link">
+                    <img src="logo.png" alt="" style="width: 40px; height: 40px;">
                 </div>
             </div>
         </div>
 
-        <div class="screen-overlay" id="overlay-guide">
-            <div class="overlay-content">
-                <button class="close-btn" onclick="closeScreen('overlay-guide')">X</button>
-                <h2>Hướng dẫn sử dụng</h2>
-                <ol>
-                    <li>Nhấn nút "Đăng nhập. Cung cấp thông tin người dùng".</li>
-                    <li>Cấp quyền camera.</li>
-                    <li>Đưa sản phẩm vào khung quét.</li>
-                    <li>Xem thông tin lượng CO2 và sản phẩm gợi ý thay thế.</li>
-                </ol>
+        <div id="scan-screen" class="screen">
+            <div id="loading-overlay">
+                <div class="spinner"></div>
+                <div class="loading-text">ĐANG QUÉT... 🌿</div>
             </div>
-        </div>
-        
-        <div class="screen-overlay" id="overlay-history">
-            <div class="overlay-content">
-                <button class="close-btn" onclick="closeScreen('overlay-history')">X</button>
-                <h2>Lịch sử quét</h2>
-                <ul>
-                    <li>21/10: Nhựa (Chai PET) - 0.2kg CO2</li>
-                    <li>20/10: Giấy (Hộp Carton) - 0.05kg CO2</li>
-                    <li>19/10: Lon (Lon nhôm) - 0.1kg CO2</li>
-                </ul>
+
+            <div class="header-scan">
+                <div class="back-btn" onclick="goHome()">❮ Quay lại</div>
+                <div class="header-title">Quét Sản Phẩm</div>
+                <div style="font-size: 20px;">🌿</div>
             </div>
-        </div>
-        
-        <div class="screen-overlay" id="overlay-settings">
-            <div class="overlay-content">
-                <button class="close-btn" onclick="closeScreen('overlay-settings')">X</button>
-                <h2>Cài đặt</h2>
-                <div class="setting-item">
-                    <span>Cấp quyền Camera</span>
-                    <label class="switch">
-                        <input type="checkbox" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span>Thông báo</span>
-                    <label class="switch">
-                        <input type="checkbox">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+
+            <div class="camera-wrapper">
+                <video id="video-live" autoplay playsinline muted></video>
+                <div class="laser"></div>
             </div>
+
+            <canvas id="capture-canvas" width="224" height="224"></canvas>
+
+            <p class="scan-hint">Đưa sản phẩm vào khung hình rồi nhấn QUÉT</p>
+            <div id="result-text"></div>
+
+            <button class="btn-capture" onclick="predict()">QUÉT 📷</button>
+            <div id="toast"></div>
         </div>
 
-    </div>
-
-    <script>
-        // Thêm sự kiện click cho các nút menu dưới
-        document.getElementById('btn-guide').addEventListener('click', function() {
-            openScreen('overlay-guide');
-        });
-
-        document.getElementById('btn-history').addEventListener('click', function() {
-            openScreen('overlay-history');
-        });
-
-        document.getElementById('btn-settings').addEventListener('click', function() {
-            openScreen('overlay-settings');
-        });
-
-        // SỰ KIỆN CLICK CHO NÚT ĐĂNG NHẬP CHÍNH MỚI
-        document.getElementById('btn-login-main').addEventListener('click', function() {
-            openScreen('overlay-login'); // Mở overlay đăng nhập mới
-        });
-
-        // Xử lý gửi Form Đăng nhập mới
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault(); // Ngăn chặn tải lại trang mặc định
+        <div id="result-screen" class="screen">
+            <div class="leaf leaf-tl"></div> <div class="leaf leaf-tr"></div> 
             
-            // Lấy giá trị Họ tên, Đơn vị, SĐT
-            const fullName = document.getElementById('full-name').value;
-            const unit = document.getElementById('unit').value;
-            const phoneNumber = document.getElementById('phone-number').value;
-            
+            <div class="res-header">
+                <div class="res-back" onclick="goToScan()">❮ Kết quả phân tích</div>
+                <div>⭐</div>
+            </div>
+
+            <div class="res-card">
+                <h2 class="res-title" id="res-name">Tên sản phẩm</h2>
+                <div class="res-badge" id="res-badge">Carbon: Đang xử lý</div>
                 
-            // Đóng overlay đăng nhập sau khi "đăng nhập thành công"
-            closeScreen('overlay-login');
-        });
+                <div class="res-scale-container">
+                    <div class="scale-bar">
+                        <div class="scale-indicator" id="res-indicator" style="left: 50%;"></div>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Thấp</span><span>TB</span><span>Cao</span>
+                    </div>
+                </div>
+            </div>
 
-        // Thêm sự kiện cho các thể loại (tùy chọn)
-        document.getElementById('btn-nhua').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về nhựa..."); });
-        document.getElementById('btn-lon').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về lon..."); });
-        document.getElementById('btn-giay').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về giấy..."); });
+            <div class="res-card">
+                <div class="res-tip-title">🌿 Eco-tip:</div>
+                <div class="res-tip-text" id="res-tip">Lời khuyên sẽ hiển thị ở đây...</div>
+            </div>
 
+            <div class="res-actions">
+                <button class="btn-res btn-res-scan" onclick="goToScan()">📞 Quét lại</button>
+                <button class="btn-res btn-res-detail">Xem chi tiết</button>
+            </div>
+        </div>
 
-        // Hàm mở màn hình overlay
-        function openScreen(overlayId) {
-            // Ẩn tất cả các overlay đang mở (nếu có)
-            closeAllScreens();
-            // Thêm class 'open' để hiển thị overlay tương ứng với hiệu ứng
-            document.getElementById(overlayId).classList.add('open');
+    </div> <script>
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/qePPB6ZMw/";
+
+        const ecoData = {
+            [
+              {
+                "className": "Hop_xop",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hộp xốp mất hàng trăm năm để phân hủy nhưng chỉ mất vài phút để hại môi trường. Lần sau mình dùng hộp cá nhân bạn nhé?\""
+              },
+              {
+                "className": "Hop_giay",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Xé nhỏ và cho vào thùng ủ phân hữu cơ (compost) hoặc thùng rác tái chế sau khi dùng."
+              },
+              {
+                "className": "Hop_sua_chua_nhua",
+                "MucCarbon": "Trung Bình",
+                "ThongDiepXanh": "Dùng xong nhớ rửa sạch và phân loại đúng chỗ bạn nha! Tái chế là cách chúng mình tặng cho vỏ hộp một cuộc đời mới.\""
+              },
+              {
+                "className": "Coc_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Cốc thủy tinh, inox,để sử dụng lâu dài hơn và tốt sức khỏe, chống chất vi nhựa"
+              },
+              {
+                "className": "Tui_xach_vai",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Bền, chắc, dùng lâu dài"
+              },
+              {
+                "className": "Ban_chai_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Bàn chải tre, dùng sản phẩm tự nhiên để đảm bảo sức khỏe"
+              },
+              {
+                "className": "Dep_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Sản phẩm có tuổi thọ cao. Hãy giữ gìn cẩn thận để dùng được lâu nhất có thể."
+              },
+              {
+                "className": "Luoc_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Lược gỗ, lược tre, giảm rác thải nhựa"
+              },
+              {
+                "className": "Dua_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Nên dùng đũa gỗ, tre sử dụng lâu dài, tốt cho sức khỏe"
+              },
+              {
+                "className": "Chen_su",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Sản phẩm dùng lâu dài. Hãy rửa sạch và tiếp tục sử dụng để giảm rác thải."
+              },
+              {
+                "className": "Do_choi_tre_em_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Đồ chơi gỗ, vãi"
+              },
+              {
+                "className": "Bich_snack",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Snack đựng trong hộp, túi giấy dùng lâu dài. Nên hạn chế dùng sản phẩm dầu mỡ"
+              },
+              {
+                "className": "Chai_tuong_ot_ca",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hũ thủy tinh đựng tương, bảo vệ sức khỏe, chống chất vi nhựa"
+              },
+              {
+                "className": "Chai_rua_chen",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Chai thuỷ tinh đựng nước rửa chén"
+              },
+              {
+                "className": "Chai_con_xit_khuan",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Chai xịt kim loại / chai xịt thủy tinh"
+              },
+              {
+                "className": "Thot_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Thân thiện với môi trường, dễ phân huỷ"
+              },
+              {
+                "className": "Chai_xa_bong_rua_tay",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Chai thủy tinh (tái chế)"
+              },
+              {
+                "className": "Mu_vai",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Sản phẩm có tuổi thọ cao. Hãy giặt sạch và sử dụng nhiều lần để bảo vệ môi trường."
+              },
+              {
+                "className": "Muong_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Muỗng sắt"
+              },
+              {
+                "className": "Gang_tay_cao_su",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Tái sử dụng nhiều lần. Khi rách, có thể cắt nhỏ tái chế dùng làm dây thun cột đồ"
+              },
+              {
+                "className": "Kep_sat",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Giữ gìn cẩn thận, tránh để rỉ sét để có thể tái sử dụng cho nhiều năm học tiếp theo."
+              },
+              {
+                "className": "Bang_keo_ca_nhan",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Phân loại vào rác thải y tế hoặc rác vô cơ sau khi sử dụng để đảm bảo vệ sinh."
+              },
+              {
+                "className": "Chai_nuoc_uong_bang_nhua_PET",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Chai nhựa này 'tiện' nhưng không 'lợi' cho hành tinh chúng mình đâu. Hãy thử thay bằng bình nước cá nhân xem sao nhé!"
+              },
+              {
+                "className": "Tui_nilon",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Mỗi chiếc túi nilon bị vứt bỏ là một lời kêu cứu của đại dương. Cùng mình thay bằng túi vải, bằng cói/mây bền vững hơn nào!\""
+              },
+              {
+                "className": "Lon_nuoc_ngot_bia_nhom",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Nước uống tự pha trong bình cá nhân"
+              },
+              {
+                "className": "Chai_thuy_tinh",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Thủy tinh có thể tái chế 100%, cách tốt nhất để bảo vệ sức khỏe và môi trường bền vững. Rửa sạch để tái sử dụng hoặc gom chai lọ gửi đi tái chế."
+              },
+              {
+                "className": "Hop_sua_giay",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Gói trọn tình yêu thiên nhiên trong từng sợi đan. Cảm ơn bạn đã chọn phong cách sống xanh thật phong cách!"
+              },
+              {
+                "className": "Ong_hut_nhua_dung_mot_lan",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Vị ngon sẽ trọn vẹn hơn khi không kèm rác thải nhựa. Một chiếc ống hút tre sẽ làm ly nước của bạn 'xanh' hơn hẳn đấy!"
+              },
+              {
+                "className": "Ly_giay_dung_mot_lan",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "ly cá nhân bằng thủy tinh"
+              },
+              {
+                "className": "Mi_goi",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Mì gói tuy ngon nhưng vỏ nhựa lại 'khó tiêu' với Trái Đất. Dùng xong bạn nhớ gom vỏ lại để xử lý đúng cách, hoặc thử chuyển sang mì giấy/mì cân để giảm nhựa nhé!"
+              },
+              {
+                "className": "Gao_dong_tui_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Gạo mua bằng túi vải"
+              },
+              {
+                "className": "Pin_tieu",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Pin cũ là rác thải nguy hại, đừng vứt chung với rác thường bạn nhé. Hãy tìm điểm thu gom pin gần nhất để bảo vệ nguồn nước!"
+              },
+              {
+                "className": "Khan_giay",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Khăn giấy khá tiện lợi cho sinh hoạt hằng ngày."
+              },
+              {
+                "className": "Nuoc_ep_dong_hop",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Nước uống tự pha trong bình cá nhân"
+              },
+              {
+                "className": "Rau_cu_dong_goi_bang_mang_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Rau củ bán rời không dùng bao bì"
+              },
+              {
+                "className": "Tra_tui_loc_trong_hop",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Trà lá rời pha trực tiếp"
+              },
+              {
+                "className": "Quan_ao_tu_soi_tu_nhien_cotton_huu_co_lanh",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Sợi tự nhiên rất thân thiện với môi trường. Khi không còn mặc vừa, hãy đem quyên góp, \nhoặc cắt may lại thành túi tote nhỏ, giẻ lau để giảm rác thải nhé"
+              },
+              {
+                "className": "Mang_boc_thuc_pham",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Hộp đựng thức ăn có nắp bằng thủy tinh"
+              },
+              {
+                "className": "Chai_dau-an_bang_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Dầu ăn đựng trong chai thủy tinh"
+              },
+              {
+                "className": "Kem_danh_rang_tuyp_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Kem đánh răng dạng viên hoặc tuýp kim loại tái chế"
+              },
+              {
+                "className": "But_chi_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Sản phẩm thân thiện! Vỏ bào gọt bút chì có thể dùng để bón cây hoặc ủ phân xanh."
+              },
+              {
+                "className": "Hop_gia_vi_bang_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Hộp gia vị bằng thủy tinh"
+              },
+              {
+                "className": "Binh_nuoc_ca_nhan_inox",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Tuyệt vời quá! Bạn đang giúp Trái Đất giảm bớt hàng trăm chai nhựa mỗi năm đấy. Tiếp tục phát huy nhé!"
+              },
+              {
+                "className": "Day_pin_sac",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Gom vào thùng rác điện tử (E-waste) khi bị hỏng để được xử lý và tái chế đúng cách."
+              },
+              {
+                "className": "Xa_phong_banh_khong_bao_bi_nhua",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Lựa chọn tuyệt vời! Giúp giảm thiểu đáng kể rác thải từ vỏ chai nhựa."
+              },
+              {
+                "className": "Đua_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Ưu tiên dùng đũa gỗ cá nhân dùng nhiều lần thay vì đũa gỗ dùng một lần ngoài hàng quán."
+              },
+              {
+                "className": "So_tay_giay_tai_che",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Thân thiện với môi trường, dễ phân huỷ"
+              },
+              {
+                "className": "Boc_vo_nilon",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Ưu tiên bọc vở bằng giấy hoặc tái sử dụng bọc cũ để giảm rác thải nhựa"
+              },
+              {
+                "className": "But_bi_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hạn chế dùng bút nhựa dùng một lần, ưu tiên bút có thể thay ruột hoặc bút thân thiện môi trường."
+              },
+              {
+                "className": "But_chi_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Lựa chọn tốt! Bút chì gỗ thân thiện môi trường và dễ phân hủy hơn nhựa."
+              },
+              {
+                "className": "Thuoc_ke_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hạn chế sử dụng thước nhựa, ưu tiên thước gỗ hoặc kim loại dùng lâu dài."
+              },
+              {
+                "className": "Thuoc_ke_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "thân thiện môi trường và có thể sử dụng lâu dài."
+              },
+              {
+                "className": "Got_but_chi_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Dùng loại bằng kim loại Nên chọn gọt bút chì bằng kim loại để tăng độ bền và giảm rác thải nhựa.\n"
+              },
+              {
+                "className": "Hop_but_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hạn chế hộp bút nhựa, ưu tiên hộp bút vải hoặc vật liệu tái sử dụng."
+              },
+              {
+                "className": "Hop_but_vai",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Lựa chọn tuyệt vời! Có thể giặt sạch và sử dụng lâu dài, giảm rác thải."
+              },
+              {
+                "className": "Bang_con_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Giữ gìn và tái sử dụng bảng để kéo dài thời gian sử dụng, giảm rác thải nhựa."
+              },
+              {
+                "className": "Giay_kiem_tra",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Chỉ sử dụng khi cần thiết, tận dụng giấy thừa hoặc in hai mặt để tiết kiệm tài nguyên."
+              },
+              {
+                "className": "Nhan_ten_nilon",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Nên dùng nhãn tên bằng giấy hoặc vật liệu thân thiện môi trường thay cho nhựa."
+              },
+              {
+                "className": "Keo_dan_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Sử dụng lượng vừa đủ, tránh lãng phí và hạn chế phát tán nhựa ra môi trường."
+              },
+              {
+                "className": "Balo_nhua",
+                "MucCarbon": "Trung bình-Cao",
+                "ThongDiepXanh": "Ưu tiên balo vải hoặc vật liệu tái chế để giảm thiểu rác thải nhựa."
+              },
+              {
+                "className": "Compa_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Hạn chế compa nhựa, ưu tiên compa kim loại để sử dụng bền lâu hơn."
+              },
+              {
+                "className": "Phan_viet_bang",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Lựa chọn tốt! Phấn viết bảng ít tạo rác thải nhựa hơn bút lông."
+              },
+              {
+                "className": "Kem_que_go",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Có thể tái sử dụng que gỗ làm đồ handmade, góp phần giảm rác thải."
+              },
+              {
+                "className": "Khan_uot",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Hạn chế khăn ướt dùng một lần, ưu tiên khăn vải có thể giặt lại."
+              },
+              {
+                "className": "Khan_tay_vai",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Lựa chọn bền vững! Có thể giặt và dùng nhiều lần, giảm rác thải."
+              },
+              {
+                "className": "Tui_vai_dung_do",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Mang theo túi vải khi mua sắm để thay thế hoàn toàn túi nilon."
+              },
+              {
+                "className": "Ghe_nhua",
+                "MucCarbon": "Cao",
+                "ThongDiepXanh": "Sử dụng lâu dài và bảo quản tốt để giảm nhu cầu thay mới."
+              },
+              {
+                "className": "Ao_khoac_vai",
+                "MucCarbon": "Trung Bình",
+                "ThongDiepXanh": "Ưu tiên chất liệu bền như cotton và sử dụng lâu dài để giảm tiêu dùng."
+              },
+              {
+                "className": "Giay_vai",
+                "MucCarbon": "Trung Bình",
+                "ThongDiepXanh": "Vệ sinh và bảo quản định kỳ để kéo dài tuổi thọ sản phẩm."
+              },
+              {
+                "className": "Khau_trang_y_te",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Hạn chế dùng một lần, ưu tiên khẩu trang vải khi không cần thiết y tế.\n"
+              },
+              {
+                "className": "Khau_trang_vai",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Có thể giặt và tái sử dụng nhiều lần, giúp giảm rác thải đáng kể."
+              },
+              {
+                "className": "Chai xịt khuẩn khô",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Chọn chai lớn để chiết ra dùng dần, giảm lượng chai nhựa thải ra."
+              },
+              {
+                "className": "Luoc_nhua",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Ưu tiên lược gỗ hoặc tre để giảm sử dụng nhựa."
+              },
+              {
+                "className": "Day_buoc_toc",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Giữ gìn và tái sử dụng nhiều lần, tránh làm rơi ra môi trường."
+              },
+              {
+                "className": "Kinh_mat",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Bảo quản tốt và thay tròng khi cần để kéo dài thời gian sử dụng."
+              },
+              {
+                "className": "Vo_keo",
+                "MucCarbon": "Trung bình",
+                "ThongDiepXanh": "Bỏ đúng nơi quy định và hạn chế sử dụng sản phẩm đóng gói nhựa."
+              },
+              {
+                "className": "Sap_giay",
+                "MucCarbon": "Thấp",
+                "ThongDiepXanh": "Sử dụng tiết kiệm, tận dụng giấy hai mặt và phân loại để tái chế, góp phần bảo vệ môi trường."
+              }
+            ]
+ 		        };
+
+        let model = null;
+        let modelLoaded = false;
+        let cameraStream = null;
+
+        const video = document.getElementById('video-live');
+        const canvas = document.getElementById('capture-canvas');
+        const ctx = canvas.getContext('2d');
+        const resultText = document.getElementById('result-text');
+        const overlay = document.getElementById('loading-overlay');
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
 
-        // Hàm đóng một màn hình overlay
-        function closeScreen(overlayId) {
-            // Xóa class 'open' để ẩn overlay
-            document.getElementById(overlayId).classList.remove('open');
+        async function loadModel() {
+            if (modelLoaded) return true;
+            try {
+                model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+                modelLoaded = true;
+                return true;
+            } catch (err) {
+                showToast("❌ Không tải được AI. Kiểm tra mạng!");
+                return false;
+            }
         }
 
-        // Hàm đóng tất cả các màn hình overlay
-        function closeAllScreens() {
-            const overlays = document.querySelectorAll('.screen-overlay');
-            overlays.forEach(overlay => {
-                overlay.classList.remove('open');
-            });
+        async function startCamera() {
+            if (cameraStream) stopCamera();
+            const constraints = { video: { facingMode: "environment" }, audio: false };
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = cameraStream;
+                await video.play();
+                return true;
+            } catch (err) {
+                showToast("❌ Lỗi Camera: Hãy cấp quyền!");
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            video.srcObject = null;
+        }
+
+        async function goToScan() {
+            document.getElementById('home-screen').classList.remove('active');
+            
+            // TẮT MÀN HÌNH KẾT QUẢ KHI QUÉT LẠI
+            document.getElementById('result-screen').classList.remove('active'); 
+            
+            document.getElementById('scan-screen').classList.add('active');
+            resultText.style.display = 'none';
+            resultText.textContent = '';
+            
+            showToast("⏳ Đang bật Camera...");
+            await Promise.all([startCamera(), loadModel()]);
+        }
+
+        function goHome() {
+            stopCamera();
+            resultText.style.display = 'none';
+            document.getElementById('scan-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.remove('active');
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        async function predict() {
+            if (!modelLoaded) { showToast("⏳ AI chưa sẵn sàng!"); return; }
+            if (!cameraStream) { showToast("📷 Camera lỗi!"); return; }
+
+            // 1. Hiện giao diện đang tải (Loading Overlay)
+            overlay.style.display = 'flex';
+            resultText.style.display = 'none';
+
+            // Dùng setTimeout để trình duyệt kịp hiển thị loading trước khi chạy model nặng
+            setTimeout(async () => {
+                try {
+                    // Chụp ảnh từ video
+                    ctx.drawImage(video, 0, 0, 224, 224);
+                    // Nhận diện
+                    const predictions = await model.predict(canvas);
+                    let best = predictions.reduce((a, b) => a.probability > b.probability ? a : b);
+                    
+                    const info = ecoData[best.className];
+                    const percent = (best.probability * 100).toFixed(1);
+
+                    // 2. Tắt giao diện đang tải
+                    overlay.style.display = 'none';
+
+                    // 3. Hiển thị lên Màn hình kết quả mới
+                    if (info) {
+                        document.getElementById('res-name').textContent = info.ten;
+                        document.getElementById('res-badge').textContent = `Carbon: ${info.level}`;
+                        document.getElementById('res-badge').className = `res-badge ${info.cssClass}`;
+                        document.getElementById('res-indicator').style.left = info.percent;
+                        document.getElementById('res-tip').textContent = info.tip;
+                    } else {
+                        document.getElementById('res-name').textContent = best.className;
+                        document.getElementById('res-badge').textContent = `Độ chắc chắn: ${percent}%`;
+                        document.getElementById('res-badge').className = `res-badge badge-tb`;
+                        document.getElementById('res-indicator').style.left = "50%";
+                        document.getElementById('res-tip').textContent = "Sản phẩm chưa có trong cơ sở dữ liệu.";
+                    }
+                    
+                    // Chuyển từ màn hình quét sang màn hình kết quả
+                    document.getElementById('scan-screen').classList.remove('active');
+                    document.getElementById('result-screen').classList.add('active');
+
+                } catch (error) {
+                    overlay.style.display = 'none';
+                    showToast("❌ Có lỗi xảy ra khi quét!");
+                }
+            }, 800); // 800ms là thời gian cố tình delay để người dùng nhìn thấy vòng quay loading
         }
     </script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 1. Tìm Form Đăng nhập qua ID
-        const loginForm = document.getElementById('login-form');
-
-        if (loginForm) {
-            // 2. Lắng nghe sự kiện 'submit' (gửi form)
-            loginForm.addEventListener('submit', function(e) {
-
-                // 3. NGĂN CHẶN HÀNH ĐỘNG MẶC ĐỊNH (Ngăn form tải lại trang hoặc hiển thị xác nhận)
-                e.preventDefault();
-
-                // --- (Tùy chọn) Khối này dùng để kiểm tra đăng nhập ---
-                // alert('Đăng nhập mô phỏng thành công! Đang chuyển hướng...');
-                // ---------------------------------------------------
-
-                // 4. ÉP BUỘC CHUYỂN HƯỚNG SANG TRANG index.html
-                // Câu lệnh này sẽ đưa bạn "vào thẳng giao diện index.html"
-                window.location.href = 'app.html'; 
-
-                // LƯU Ý: Đảm bảo file index.html nằm cùng thư mục với file login.html
-            });
-        } else {
-            console.error("Không tìm thấy form Đăng nhập có ID 'login-form'.");
-        }
-    });
-</script>
 </body>
 </html>
