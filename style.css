@@ -1,0 +1,223 @@
+/* Thiết lập cơ bản */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #e0f2f1; /* Nền xanh mint mờ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* Khung giao diện (Phone Frame) */
+.phone-frame {
+    position: relative;
+    width: 374px; /* Giữ tỷ lệ, đo từ ảnh 748x1080 */
+    height: 540px; 
+    background-image: url('interface.jpg');
+    background-size: cover; /* Hoặc 'initial' nếu ảnh khớp kích thước */
+    background-position: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border-radius: 40px; /* Bo góc giả lập điện thoại */
+    overflow: hidden; /* Giấu nội dung overlay khi chưa mở */
+}
+
+/* Kiểu nút lệnh ẩn */
+.action-btn {
+    position: absolute;
+    background: transparent; /* Nút ẩn */
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    z-index: 10; /* Đặt trên background */
+}
+
+/* Hiệu ứng khi di chuột qua nút (mờ mờ để người dùng biết họ có thể nhấp) */
+.action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2); /* Mờ mờ */
+    border-radius: 5px; /* Bo góc nhẹ */
+}
+
+
+/* VỊ TRÍ CHÍNH XÁC CỦA CÁC NÚT (Đo từ ảnh) */
+/* 1. Nút Bắt đầu quét */
+#btn-scan {
+    top: 41.5%; /* % từ trên xuống */
+    left: 50%; /* % từ trái sang */
+    transform: translateX(-50%); /* Căn giữa */
+    width: 48%; /* Rộng 48% của container */
+    height: 4.8%; /* Cao 4.8% của container */
+    border-radius: 20px; /* Khớp bo góc của nút thật */
+}
+
+/* 2. Thanh menu dưới */
+#btn-guide {
+    top: 88.8%;
+    left: 24.5%; /* Gần giữa nút Hướng dẫn */
+    transform: translateX(-50%);
+    width: 22%;
+    height: 4.5%;
+}
+
+#btn-history {
+    top: 88.8%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22%;
+    height: 4.5%;
+}
+
+#btn-settings {
+    top: 88.8%;
+    left: 75.5%; /* Gần giữa nút Cài đặt */
+    transform: translateX(-50%);
+    width: 22%;
+    height: 4.5%;
+}
+
+/* Nút thể loại (tùy chọn) */
+.btn-category {
+    top: 73.5%;
+    transform: translateX(-50%);
+    width: 12%;
+    height: 3%;
+    border-radius: 50%;
+}
+#btn-nhua { left: 32.5%; }
+#btn-lon { left: 50%; }
+#btn-giay { left: 67.5%; }
+
+
+/* HIỆU ỨNG CHUYỂN GIAO DIỆN CHUYÊN NGHIỆP */
+.screen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff; /* Nền trắng */
+    background-image: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    z-index: 20; /* Đặt trên tất cả */
+    display: none; /* Ẩn mặc định */
+    transition: transform 0.4s ease, opacity 0.4s ease; /* Chuyển động mượt */
+    padding: 30px;
+    box-sizing: border-box;
+    overflow-y: auto; /* Thêm cuộn dọc nếu nội dung dài */
+}
+
+/* Khi màn hình được mở */
+.screen-overlay.open {
+    display: block; /* Hiển thị */
+    animation: fadeInSlideIn 0.4s ease forwards; /* Chạy animation */
+}
+
+/* Animation mượt mà: mờ dần và trượt lên nhẹ */
+@keyframes fadeInSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Kiểu nội dung overlay */
+.overlay-content h2 {
+    color: #2e7d32; /* Xanh lá cây */
+    text-align: center;
+    margin-bottom: 20px;
+}
+.overlay-content ol, .overlay-content ul {
+    color: #555;
+}
+.overlay-content ul {
+    list-style: none;
+    padding: 0;
+}
+.overlay-content li {
+    background: rgba(46, 125, 50, 0.05);
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Kiểu nút đóng */
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.close-btn:hover {
+    color: #2e7d32;
+}
+
+/* Kiểu cài đặt toggle switch */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2e7d32;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2e7d32;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(24px);
+  -ms-transform: translateX(24px);
+  transform: translateX(24px);
+}
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}

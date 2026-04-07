@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao diện Web Tương Tác Eco-Vision</title>
+    <style>
+        /* === CSS CHUNG === */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e0f2f1; /* Nền xanh mint mờ */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* === KHUNG ĐIỆN THOẠI === */
+        .phone-frame {
+            position: relative;
+            width: 374px; /* Giữ tỷ lệ, đo từ ảnh 748x1080 */
+            height: 540px; 
+            background-color: white; /* Nền trắng mờ làm lớp nền, giúpcontain không bị khoảng trống */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: 40px; /* Bo góc giả lập điện thoại */
+            overflow: hidden; /* Giấu nội dung overlay khi chưa mở */
+        }
+
+        /* === HÌNH NỀN GIAO DIỆN (ĐÃ CHỈNH SỬA LỖI TRÀN) === */
+        .interface-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* !!! SỬ DỤNG HÌNH ẢNH MỚI (image_7.png) !!! */
+            background-image: url('interface.png'); 
+            /* SỬA LỖI TRÀN: Đảm bảo hình ảnh gốc được hiển thị 100% và nằm gọn bên trong khung */
+            background-size: contain; 
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 1; /* Nằm dưới các nút hotspot */
+        }
+
+        /* === NÚT HOTSPOT ẨN === */
+        .action-btn {
+            position: absolute;
+            background: transparent; /* Nút ẩn */
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            z-index: 10; /* Đặt trên background */
+        }
+
+        /* Hiệu ứng mờ mờ khi di chuột */
+        .action-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        /* === VỊ TRÍ NÚT CHO NỀN MỚI (Vị trí % không đổi) === */
+        /* 1. Nút Đăng nhập chính (Thay thế quét) */
+        #btn-login-main {
+            top: 41.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 48%;
+            height: 10%;
+            border-radius: 20px;
+        }
+
+        /* 2. Thanh menu dưới */
+        #btn-guide { top: 88.8%; left: 24.5%; transform: translateX(-50%); width: 22%; height: 4.5%; }
+        #btn-history { top: 88.8%; left: 50%; transform: translateX(-50%); width: 22%; height: 4.5%; }
+        #btn-settings { top: 88.8%; left: 75.5%; transform: translateX(-50%); width: 22%; height: 4.5%; }
+
+        /* Nút thể loại (tùy chọn) */
+        .btn-category { top: 73.5%; transform: translateX(-50%); width: 12%; height: 3%; border-radius: 50%; }
+        #btn-nhua { left: 32.5%; }
+        #btn-lon { left: 50%; }
+        #btn-giay { left: 67.5%; }
+
+
+        /* === OVERLAY VÀ NỘI DUNG === */
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5); /* Nền đen mờ */
+            z-index: 20; /* Đặt trên tất cả */
+            display: none; /* Ẩn mặc định */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen-overlay.open { display: flex; animation: fadeIn 0.3s ease forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .overlay-content {
+            background-color: white;
+            width: 80%;
+            max-height: 80%;
+            border-radius: 20px;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .overlay-content h2 { color: #2e7d32; text-align: center; margin-top: 0; }
+        .overlay-content ol, .overlay-content ul { color: #555; }
+        .overlay-content ul { list-style: none; padding: 0; }
+        .overlay-content li { background: rgba(46, 125, 50, 0.05); margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+
+        .close-btn { position: absolute; top: 15px; right: 15px; background: transparent; border: none; font-size: 1.5rem; font-weight: bold; color: #888; cursor: pointer; transition: color 0.2s ease; z-index: 10; }
+        .close-btn:hover { color: #2e7d32; }
+
+        /* Kiểu cài đặt toggle switch */
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 3px; background-color: white; -webkit-transition: .4s; transition: .4s; }
+        input:checked + .slider { background-color: #2e7d32; }
+        input:focus + .slider { box-shadow: 0 0 1px #2e7d32; }
+        input:checked + .slider:before { -webkit-transform: translateX(24px); -ms-transform: translateX(24px); transform: translateX(24px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+
+        /* === ĐỊNH KIỂU FORM ĐĂNG NHẬP MỚI === */
+        .login-content h2 {
+            color: #2e7d32; /* Xanh lá cây */
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .submit-btn {
+            background-color: #2e7d32; /* Xanh lá cây */
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 25px; /* Bo góc tròn */
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #034833; /* Xanh lá cây đậm hơn */
+        }
+
+        .login-links {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        .login-links a {
+            color: #2e7d32;
+            text-decoration: none;
+        }
+
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="interface-background"></div>
+
+        <button class="action-btn" id="btn-login-main" title="Đăng nhập"></button>
+        
+        <button class="action-btn" id="btn-guide" title="Hướng dẫn"></button>
+        <button class="action-btn" id="btn-history" title="Lịch sử"></button>
+        <button class="action-btn" id="btn-settings" title="Cài đặt"></button>
+        
+        <button class="action-btn btn-category" id="btn-nhua" title="Nhựa"></button>
+        <button class="action-btn btn-category" id="btn-lon" title="Lon"></button>
+        <button class="action-btn btn-category" id="btn-giay" title="Giấy"></button>
+
+        
+        <div class="screen-overlay" id="overlay-login">
+            <div class="overlay-content login-content">
+                <button class="close-btn" onclick="closeScreen('overlay-login')">X</button>
+                <h2>ĐĂNG NHẬP</h2>
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label class="form-label" for="full-name">Họ tên</label>
+                        <input type="text" id="full-name" class="form-input" placeholder="Họ và tên của bạn" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="unit">Đơn vị</label>
+                        <input type="text" id="unit" class="form-input" placeholder="Lớp / Phòng ban" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone-number">SĐT</label>
+                        <input type="tel" id="phone-number" class="form-input" placeholder="Số điện thoại" required pattern="[0-9]{10}">
+                    </div>
+                    <button type="submit" class="submit-btn">ĐĂNG NHẬP</button>
+                </form>
+                <div class="login-links">
+                    <a href="#">Quên mật khẩu?</a> | <a href="#">Đăng ký tài khoản mới</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen-overlay" id="overlay-guide">
+            <div class="overlay-content">
+                <button class="close-btn" onclick="closeScreen('overlay-guide')">X</button>
+                <h2>Hướng dẫn sử dụng</h2>
+                <ol>
+                    <li>Nhấn nút "Đăng nhập. Cung cấp thông tin người dùng".</li>
+                    <li>Cấp quyền camera.</li>
+                    <li>Đưa sản phẩm vào khung quét.</li>
+                    <li>Xem thông tin lượng CO2 và sản phẩm gợi ý thay thế.</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="screen-overlay" id="overlay-history">
+            <div class="overlay-content">
+                <button class="close-btn" onclick="closeScreen('overlay-history')">X</button>
+                <h2>Lịch sử quét</h2>
+                <ul>
+                    <li>21/10: Nhựa (Chai PET) - 0.2kg CO2</li>
+                    <li>20/10: Giấy (Hộp Carton) - 0.05kg CO2</li>
+                    <li>19/10: Lon (Lon nhôm) - 0.1kg CO2</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="screen-overlay" id="overlay-settings">
+            <div class="overlay-content">
+                <button class="close-btn" onclick="closeScreen('overlay-settings')">X</button>
+                <h2>Cài đặt</h2>
+                <div class="setting-item">
+                    <span>Cấp quyền Camera</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Thông báo</span>
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Thêm sự kiện click cho các nút menu dưới
+        document.getElementById('btn-guide').addEventListener('click', function() {
+            openScreen('overlay-guide');
+        });
+
+        document.getElementById('btn-history').addEventListener('click', function() {
+            openScreen('overlay-history');
+        });
+
+        document.getElementById('btn-settings').addEventListener('click', function() {
+            openScreen('overlay-settings');
+        });
+
+        // SỰ KIỆN CLICK CHO NÚT ĐĂNG NHẬP CHÍNH MỚI
+        document.getElementById('btn-login-main').addEventListener('click', function() {
+            openScreen('overlay-login'); // Mở overlay đăng nhập mới
+        });
+
+        // Xử lý gửi Form Đăng nhập mới
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Ngăn chặn tải lại trang mặc định
+            
+            // Lấy giá trị Họ tên, Đơn vị, SĐT
+            const fullName = document.getElementById('full-name').value;
+            const unit = document.getElementById('unit').value;
+            const phoneNumber = document.getElementById('phone-number').value;
+            
+                
+            // Đóng overlay đăng nhập sau khi "đăng nhập thành công"
+            closeScreen('overlay-login');
+        });
+
+        // Thêm sự kiện cho các thể loại (tùy chọn)
+        document.getElementById('btn-nhua').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về nhựa..."); });
+        document.getElementById('btn-lon').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về lon..."); });
+        document.getElementById('btn-giay').addEventListener('click', function() { alert("Hiệu ứng: Hiển thị thông tin về giấy..."); });
+
+
+        // Hàm mở màn hình overlay
+        function openScreen(overlayId) {
+            // Ẩn tất cả các overlay đang mở (nếu có)
+            closeAllScreens();
+            // Thêm class 'open' để hiển thị overlay tương ứng với hiệu ứng
+            document.getElementById(overlayId).classList.add('open');
+        }
+
+        // Hàm đóng một màn hình overlay
+        function closeScreen(overlayId) {
+            // Xóa class 'open' để ẩn overlay
+            document.getElementById(overlayId).classList.remove('open');
+        }
+
+        // Hàm đóng tất cả các màn hình overlay
+        function closeAllScreens() {
+            const overlays = document.querySelectorAll('.screen-overlay');
+            overlays.forEach(overlay => {
+                overlay.classList.remove('open');
+            });
+        }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Tìm Form Đăng nhập qua ID
+        const loginForm = document.getElementById('login-form');
+
+        if (loginForm) {
+            // 2. Lắng nghe sự kiện 'submit' (gửi form)
+            loginForm.addEventListener('submit', function(e) {
+
+                // 3. NGĂN CHẶN HÀNH ĐỘNG MẶC ĐỊNH (Ngăn form tải lại trang hoặc hiển thị xác nhận)
+                e.preventDefault();
+
+                // --- (Tùy chọn) Khối này dùng để kiểm tra đăng nhập ---
+                // alert('Đăng nhập mô phỏng thành công! Đang chuyển hướng...');
+                // ---------------------------------------------------
+
+                // 4. ÉP BUỘC CHUYỂN HƯỚNG SANG TRANG index.html
+                // Câu lệnh này sẽ đưa bạn "vào thẳng giao diện index.html"
+                window.location.href = 'app.html'; 
+
+                // LƯU Ý: Đảm bảo file index.html nằm cùng thư mục với file login.html
+            });
+        } else {
+            console.error("Không tìm thấy form Đăng nhập có ID 'login-form'.");
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Vision - THCS Nguyễn Trãi</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        :root {
+            --green-dark: #1b5e20; --green-mid: #2e7d32; --green-light: #4caf50;
+            --bg-home: linear-gradient(180deg, #ffffff 0%, #dcedc8 100%);
+            --bg-scan: linear-gradient(180deg, #e8f5e9 0%, #a5d6a7 100%);
+            --btn-grad: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; font-family: 'Nunito', sans-serif;
+            background: radial-gradient(ellipse at center, #c8e6c9 0%, #81c784 100%);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        .phone {
+            width: 375px; height: 750px; border-radius: 45px; border: 10px solid #222;
+            position: relative; overflow: hidden;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), inset 0 0 0 2px #555; background: white;
+        }
+
+        .phone::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 28px; background: #222; border-radius: 0 0 18px 18px; z-index: 999;
+        }
+
+        .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; }
+        .screen.active { display: flex; }
+
+        /* --- TRANG CHỦ --- */
+        #home-screen { background: var(--bg-home); padding-top: 50px; }
+        .leaf { position: absolute; background-size: contain; background-repeat: no-repeat; z-index: 1; opacity: 0.5; animation: sway 4s ease-in-out infinite alternate; background-image: url('https://cdn-icons-png.flaticon.com/512/892/892926.png'); }
+        @keyframes sway { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(10deg) translateY(10px); } }
+        .leaf-tl { width: 110px; height: 110px; top: -15px; left: -25px; transform: rotate(110deg); }
+        .leaf-tr { width: 65px; height: 65px; top: 55px; right: -15px; transform: rotate(-20deg); animation-delay: 1s; }
+        .leaf-ml { width: 150px; height: 150px; top: 340px; left: -55px; opacity: .3; transform: rotate(45deg); animation-delay: 2s; }
+        .leaf-br { width: 135px; height: 135px; bottom: -30px; right: -40px; transform: rotate(-40deg); animation-delay: 1.5s; }
+
+        .school-name { font-size: 13px; font-weight: 900; color: var(--green-dark); text-transform: uppercase; letter-spacing: 2px; z-index: 5; }
+        .app-title { font-size: 46px; font-weight: 900; color: var(--green-mid); margin: 4px 0; z-index: 5; text-shadow: 2px 4px 10px rgba(46, 125, 50, 0.2); }
+        .slogan { font-style: italic; font-size: 13px; color: #555; margin-bottom: 10px; z-index: 5; }
+        .earth-img { width: 175px; z-index: 5; filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.15)); animation: float 3s ease-in-out infinite alternate; }
+        @keyframes float { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+
+        .btn-scan-main { background: var(--btn-grad); color: white; border: none; padding: 14px 38px; border-radius: 50px; font-size: 19px; font-weight: 900; display: flex; align-items: center; gap: 10px; cursor: pointer; z-index: 5; margin-top: 15px; box-shadow: 0 8px 20px rgba(46, 125, 50, 0.35); font-family: 'Nunito', sans-serif; transition: 0.2s;}
+        .btn-scan-main:active { transform: scale(0.96); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+        
+        .info-card { background: rgba(255, 255, 255, 0.85); border: 2px dashed #4caf50; border-radius: 22px; padding: 13px 22px; width: 78%; text-align: center; margin-top: 18px; color: #333; font-size: 14px; z-index: 5; }
+        .categories { display: flex; gap: 12px; margin: 16px 0; z-index: 5; }
+        .cat-item { background: white; padding: 10px; border-radius: 18px; width: 82px; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        .cat-item img { width: 44px; height: 44px; object-fit: contain; margin: 0 auto 5px; display: block; }
+        .badge { font-size: 11px; font-weight: 800; padding: 3px 0; border-radius: 8px; display: block; }
+        .badge-nhua { background: #ffebee; color: #c62828; }
+        .badge-lon { background: #fff8e1; color: #f57f17; }
+        .badge-giay { background: #e8f5e9; color: #2e7d32; }
+
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0 22px; border-top: 1px solid #eee; z-index: 5; }
+        .nav-link { color: #9e9e9e; text-align: center; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .nav-icon { font-size: 22px; display: block; margin-bottom: 3px; }
+
+        /* --- TRANG QUÉT --- */
+        #scan-screen { background: var(--bg-scan); }
+        .header-scan { width: 90%; padding: 45px 0 12px; display: flex; justify-content: space-between; align-items: center; color: var(--green-dark); z-index: 10; font-weight: 900;}
+        .back-btn { font-size: 15px; cursor: pointer; }
+        .camera-wrapper { width: 320px; height: 370px; background: #111; border-radius: 28px; overflow: hidden; border: 3px solid rgba(255, 255, 255, 0.5); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25); position: relative; z-index: 2; }
+        #video-live { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #capture-canvas { display: none; }
+        
+        .laser { position: absolute; width: 90%; height: 3px; background: #ff1744; left: 5%; box-shadow: 0 0 12px #ff1744; animation: scanAnim 2.5s infinite ease-in-out; z-index: 5; }
+        @keyframes scanAnim { 0% { top: 8%; } 100% { top: 88%; } }
+
+        .scan-hint { font-weight: 700; color: var(--green-dark); margin: 14px 0 4px; font-size: 14px; z-index: 5;}
+        
+        #result-text { font-weight: 800; font-size: 14px; color: var(--green-dark); margin: 6px 20px; text-align: center; background: rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px; width: 85%; display: none; z-index: 5;}
+        
+        .btn-capture { margin-top: 15px; padding: 14px 55px; border: none; border-radius: 50px; background: var(--btn-grad); color: white; font-size: 22px; font-weight: 900; letter-spacing: 3px; cursor: pointer; box-shadow: 0 10px 25px rgba(46, 125, 50, 0.4); z-index: 10; font-family: 'Nunito', sans-serif; transition: 0.2s;}
+        .btn-capture:active { transform: translateY(2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); }
+
+        #toast { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; z-index: 999; display: none; white-space: nowrap; }
+
+        /* --- HIỆU ỨNG LOADING (ĐANG QUÉT) --- */
+        #loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85); z-index: 50;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 6px solid #e2e8f0;
+            border-top: 6px solid var(--green-mid); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-weight: 900; color: var(--green-mid); font-size: 16px; letter-spacing: 1px; }
+
+        /* --- TRANG KẾT QUẢ --- */
+        #result-screen { background: #f4fdf8; padding-top: 40px; }
+        .res-header { width: 90%; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--green-dark); margin-bottom: 20px; font-size: 18px; z-index: 5;}
+        .res-back { cursor: pointer; color: var(--green-dark); font-size: 16px; }
+        
+        .res-card { background: white; width: 85%; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-bottom: 15px; position: relative; z-index: 5; border: 1px solid #e0f2f1;}
+        .res-title { font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; }
+        
+        .res-badge { display: inline-block; padding: 6px 18px; border-radius: 20px; font-weight: 900; color: white; margin-bottom: 25px; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
+        .badge-cao { background: #ef4444; } /* Đỏ */
+        .badge-tb { background: #f59e0b; }  /* Vàng */
+        .badge-thap { background: #10b981; } /* Xanh */
+        
+        /* Thanh đo Carbon */
+        .res-scale-container { position: relative; margin-top: 15px; }
+        .scale-bar { width: 100%; height: 14px; border-radius: 10px; background: linear-gradient(to right, #10b981, #f59e0b, #ef4444); position: relative; }
+        .scale-indicator { position: absolute; top: -6px; width: 4px; height: 26px; background: #1f2937; border-radius: 2px; transition: left 0.5s ease; }
+        .scale-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-top: 8px; color: #4b5563; }
+        .scale-labels span:nth-child(1) { color: #10b981; }
+        .scale-labels span:nth-child(2) { color: #f59e0b; }
+        .scale-labels span:nth-child(3) { color: #ef4444; }
+        
+        .res-tip-title { font-size: 17px; font-weight: 900; color: var(--green-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        .res-tip-text { font-size: 15px; color: #374151; line-height: 1.5; font-weight: 700;}
+        
+        /* Nút hành động */
+        .res-actions { display: flex; gap: 12px; width: 85%; margin-top: 10px; z-index: 5;}
+        .btn-res { flex: 1; padding: 14px 0; border: none; border-radius: 25px; font-weight: 900; font-size: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Nunito', sans-serif;}
+        .btn-res-scan { background: #0f766e; color: white; box-shadow: 0 6px 15px rgba(15, 118, 110, 0.3); }
+        .btn-res-detail { background: #fef08a; color: #854d0e; box-shadow: 0 6px 15px rgba(254, 240, 138, 0.5); }
+
+    </style>
+
+</head>
+<body>
+
+    <div class="phone">
+        
+        <div id="home-screen" class="screen active">
+            <div class="leaf leaf-tl"></div> <div class="leaf leaf-tr"></div>
+            <div class="leaf leaf-ml"></div> <div class="leaf leaf-br"></div>
+
+            <div class="school-name">THCS Nguyễn Trãi</div>
+            <h1 class="app-title">ECO-VISION</h1>
+            <div class="slogan">"Quét để hiểu – Sống xanh hơn"</div>
+
+            <img src="https://cdn-icons-png.flaticon.com/512/826/826070.png" class="earth-img" alt="Earth">
+
+            <button class="btn-scan-main" onclick="goToScan()">
+                <span>📷</span> BẮT ĐẦU QUÉT
+            </button>
+
+            <div class="info-card">
+                Ứng dụng giúp bạn nhận biết<br>
+                <strong>lượng CO₂</strong> của sản phẩm 🌿
+            </div>
+
+            <div class="categories">
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1047/1047503.png" alt="Cao">
+                    <span class="badge badge-nhua">Cao</span>
+                </div>
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2722/2722512.png" alt="Trung Bình">
+                    <span class="badge badge-lon">Trung bình</span>
+                </div>
+                <div class="cat-item">
+                    <img src="https://cdn-icons-png.flaticon.com/512/679/679821.png" alt="Thấp">
+                    <span class="badge badge-giay">Thấp</span>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+               <div class="nav-link">
+                    <img src="logo.png" alt="" style="width: 40px; height: 40px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="scan-screen" class="screen">
+            <div id="loading-overlay">
+                <div class="spinner"></div>
+                <div class="loading-text">ĐANG QUÉT... 🌿</div>
+            </div>
+
+            <div class="header-scan">
+                <div class="back-btn" onclick="goHome()">❮ Quay lại</div>
+                <div class="header-title">Quét Sản Phẩm</div>
+                <div style="font-size: 20px;">🌿</div>
+            </div>
+
+            <div class="camera-wrapper">
+                <video id="video-live" autoplay playsinline muted></video>
+                <div class="laser"></div>
+            </div>
+
+            <canvas id="capture-canvas" width="224" height="224"></canvas>
+
+            <p class="scan-hint">Đưa sản phẩm vào khung hình rồi nhấn QUÉT</p>
+            <div id="result-text"></div>
+
+            <button class="btn-capture" onclick="predict()">QUÉT 📷</button>
+            <div id="toast"></div>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <div class="leaf leaf-tl"></div> <div class="leaf leaf-tr"></div> 
+            
+            <div class="res-header">
+                <div class="res-back" onclick="goToScan()">❮ Kết quả phân tích</div>
+                <div>⭐</div>
+            </div>
+
+            <div class="res-card">
+                <h2 class="res-title" id="res-name">Tên sản phẩm</h2>
+                <div class="res-badge" id="res-badge">Carbon: Đang xử lý</div>
+                
+                <div class="res-scale-container">
+                    <div class="scale-bar">
+                        <div class="scale-indicator" id="res-indicator" style="left: 50%;"></div>
+                    </div>
+                    <div class="scale-labels">
+                        <span>Thấp</span><span>TB</span><span>Cao</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="res-card">
+                <div class="res-tip-title">🌿 Eco-tip:</div>
+                <div class="res-tip-text" id="res-tip">Lời khuyên sẽ hiển thị ở đây...</div>
+            </div>
+
+            <div class="res-actions">
+                <button class="btn-res btn-res-scan" onclick="goToScan()">📞 Quét lại</button>
+                <button class="btn-res btn-res-detail">Xem chi tiết</button>
+            </div>
+        </div>
+
+    </div> <script>
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/qePPB6ZMw/";
+
+        const ecoData = {
+            "Hop_xop": { 
+                ten: "Hộp xốp", level: "CAO", cssClass: "badge-cao", percent: "90%", 
+                tip: "Khó phân hủy. Hãy chọn hộp bã mía thay thế!" 
+            },
+            "Binh_Inox_giu_nhiet": { 
+                ten: "Bình Inox", level: "THẤP", cssClass: "badge-thap", percent: "10%", 
+                tip: "Dùng bình cá nhân giúp giảm ngàn chai nhựa!" 
+            },
+            "Hop_sua_chua": { 
+                ten: "Hộp sữa chua", level: "TRUNG BÌNH", cssClass: "badge-tb", percent: "50%", 
+                tip: "Hãy rửa sạch và bỏ vào thùng rác tái chế." 
+            }
+        };
+
+        let model = null;
+        let modelLoaded = false;
+        let cameraStream = null;
+
+        const video = document.getElementById('video-live');
+        const canvas = document.getElementById('capture-canvas');
+        const ctx = canvas.getContext('2d');
+        const resultText = document.getElementById('result-text');
+        const overlay = document.getElementById('loading-overlay');
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        async function loadModel() {
+            if (modelLoaded) return true;
+            try {
+                model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+                modelLoaded = true;
+                return true;
+            } catch (err) {
+                showToast("❌ Không tải được AI. Kiểm tra mạng!");
+                return false;
+            }
+        }
+
+        async function startCamera() {
+            if (cameraStream) stopCamera();
+            const constraints = { video: { facingMode: "environment" }, audio: false };
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = cameraStream;
+                await video.play();
+                return true;
+            } catch (err) {
+                showToast("❌ Lỗi Camera: Hãy cấp quyền!");
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            video.srcObject = null;
+        }
+
+        async function goToScan() {
+            document.getElementById('home-screen').classList.remove('active');
+            
+            // TẮT MÀN HÌNH KẾT QUẢ KHI QUÉT LẠI
+            document.getElementById('result-screen').classList.remove('active'); 
+            
+            document.getElementById('scan-screen').classList.add('active');
+            resultText.style.display = 'none';
+            resultText.textContent = '';
+            
+            showToast("⏳ Đang bật Camera...");
+            await Promise.all([startCamera(), loadModel()]);
+        }
+
+        function goHome() {
+            stopCamera();
+            resultText.style.display = 'none';
+            document.getElementById('scan-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.remove('active');
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        async function predict() {
+            if (!modelLoaded) { showToast("⏳ AI chưa sẵn sàng!"); return; }
+            if (!cameraStream) { showToast("📷 Camera lỗi!"); return; }
+
+            // 1. Hiện giao diện đang tải (Loading Overlay)
+            overlay.style.display = 'flex';
+            resultText.style.display = 'none';
+
+            // Dùng setTimeout để trình duyệt kịp hiển thị loading trước khi chạy model nặng
+            setTimeout(async () => {
+                try {
+                    // Chụp ảnh từ video
+                    ctx.drawImage(video, 0, 0, 224, 224);
+                    // Nhận diện
+                    const predictions = await model.predict(canvas);
+                    let best = predictions.reduce((a, b) => a.probability > b.probability ? a : b);
+                    
+                    const info = ecoData[best.className];
+                    const percent = (best.probability * 100).toFixed(1);
+
+                    // 2. Tắt giao diện đang tải
+                    overlay.style.display = 'none';
+
+                    // 3. Hiển thị lên Màn hình kết quả mới
+                    if (info) {
+                        document.getElementById('res-name').textContent = info.ten;
+                        document.getElementById('res-badge').textContent = `Carbon: ${info.level}`;
+                        document.getElementById('res-badge').className = `res-badge ${info.cssClass}`;
+                        document.getElementById('res-indicator').style.left = info.percent;
+                        document.getElementById('res-tip').textContent = info.tip;
+                    } else {
+                        document.getElementById('res-name').textContent = best.className;
+                        document.getElementById('res-badge').textContent = `Độ chắc chắn: ${percent}%`;
+                        document.getElementById('res-badge').className = `res-badge badge-tb`;
+                        document.getElementById('res-indicator').style.left = "50%";
+                        document.getElementById('res-tip').textContent = "Sản phẩm chưa có trong cơ sở dữ liệu.";
+                    }
+                    
+                    // Chuyển từ màn hình quét sang màn hình kết quả
+                    document.getElementById('scan-screen').classList.remove('active');
+                    document.getElementById('result-screen').classList.add('active');
+
+                } catch (error) {
+                    overlay.style.display = 'none';
+                    showToast("❌ Có lỗi xảy ra khi quét!");
+                }
+            }, 800); // 800ms là thời gian cố tình delay để người dùng nhìn thấy vòng quay loading
+        }
+    </script>
+</body>
+</html>
